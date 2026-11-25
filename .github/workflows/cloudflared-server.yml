@@ -78,8 +78,8 @@ jobs:
             exit 1
           fi
 
-          # 1. Start Gunicorn in background
-          gunicorn app:app --bind 0.0.0.0:7860 --workers 2 --threads 4 --timeout 120 --access-logfile - --error-logfile - &
+          # 1. Start Gunicorn in background (4 workers x 8 threads = 32 parallel threads)
+          gunicorn app:app --bind 0.0.0.0:7860 --workers 4 --threads 8 --timeout 120 --access-logfile - --error-logfile - &
           GUNICORN_PID=$!
 
           # 2. Wait until local server is healthy
@@ -129,7 +129,7 @@ jobs:
             # Restart gunicorn if it ever crashes
             if ! kill -0 "$GUNICORN_PID" 2>/dev/null; then
               echo "Gunicorn exited unexpectedly, restarting..."
-              gunicorn app:app --bind 0.0.0.0:7860 --workers 2 --threads 4 --timeout 120 --access-logfile - --error-logfile - &
+              gunicorn app:app --bind 0.0.0.0:7860 --workers 4 --threads 8 --timeout 120 --access-logfile - --error-logfile - &
               GUNICORN_PID=$!
             fi
 
