@@ -16,14 +16,15 @@ jobs:
     timeout-minutes: 335
 
     steps:
-      - name: Check Tashkent rest window (00:00 - 05:55 UZT)
+      - name: Check Tashkent rest window (00:00 - 05:50 UZT)
         id: timecheck
         run: |
           HOUR=$(TZ='Asia/Tashkent' date +%H)
           MIN=$(TZ='Asia/Tashkent' date +%M)
           echo "Tashkent time: $HOUR:$MIN"
-          if [ "$((10#$HOUR))" -lt 6 ]; then
-            echo "Resting time (00:00 - 06:00 UZT). Skipping."
+          TOTAL_MIN=$((10#$HOUR * 60 + 10#$MIN))
+          if [ "$TOTAL_MIN" -lt 350 ]; then
+            echo "Resting time (00:00 - 05:50 UZT). Skipping."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
@@ -99,7 +100,7 @@ jobs:
           # Notify Admin via Telegram Bot that server is ON
           START_TIME_UZT=$(TZ='Asia/Tashkent' date '+%H:%M:%S (%d.%m.%Y)')
           if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_ADMIN_ID" ]; then
-            MSG_ON=$(printf "🟢 Navoiy AI serveri (GitHub Actions + Cloudflare Tunnel) YONDI va tayyor!\n🕒 Vaqt: %s\n🌐 Sayt: %s" "$START_TIME_UZT" "${SITE_URL:-navoiy}")
+            MSG_ON=$(printf "🟢 Navoiy AI serveri YONDI va tayyor!\n🕒 Vaqt: %s\n🌐 Sayt: %s" "$START_TIME_UZT" "${SITE_URL:-navoiy}")
             curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
               -d chat_id="$TELEGRAM_ADMIN_ID" \
               --data-urlencode "text=${MSG_ON}" >/dev/null || true
