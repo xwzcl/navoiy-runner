@@ -10,6 +10,9 @@ on:
     - cron: '50 11 * * *'   # 16:50 UZT (3-smena, 5 min overlap)
     - cron: '15 17 * * *'   # 22:15 UZT (4-smena, 00:00 UZT gacha ishlaydi)
 
+permissions:
+  actions: write
+
 jobs:
   serve:
     runs-on: ubuntu-latest
@@ -106,24 +109,28 @@ jobs:
               --data-urlencode "text=${MSG_ON}" >/dev/null || true
           fi
 
-          # 4. Run for up to 330 minutes (5h 30m) OR until 00:00 Tashkent time
+          # 4. Run for up to 325 minutes (5h 25m) OR until 00:00 Tashkent time
           START_TS=$(date +%s)
-          MAX_SECS=$((330 * 60))
-          STOP_REASON="5 soat 30 minutlik smena tugadi (navbatdagi serverga o'tmoqda)"
+          MAX_SECS=$((325 * 60))
+          STOP_REASON="5 soat 25 minutlik smena tugadi (navbatdagi serverga o'tmoqda)"
 
           while true; do
             NOW_TS=$(date +%s)
             ELAPSED=$((NOW_TS - START_TS))
             CUR_HOUR=$(TZ='Asia/Tashkent' date +%H)
+            CUR_MIN=$(TZ='Asia/Tashkent' date +%M)
+            CUR_TOTAL_MIN=$((10#$CUR_HOUR * 60 + 10#$CUR_MIN))
 
-            if [ "$((10#$CUR_HOUR))" -lt 6 ]; then
+            if [ "$CUR_TOTAL_MIN" -lt 350 ]; then
               STOP_REASON="Soat 00:00 bo'ldi — tungi dam olish (00:00 - 06:00)"
               echo "00:00 UZT reached — entering night rest (00:00 - 06:00 UZT)."
               break
             fi
 
             if [ "$ELAPSED" -ge "$MAX_SECS" ]; then
-              echo "330 minutes (5h 30m) shift complete. Handing over to next runner."
+              echo "325 minutes shift complete. Triggering next runner before shutdown..."
+              curl -s -X POST "https://api.github.com/repos/${{ github.repository }}/actions/workflows/cloudflared-server.yml/dispatches"                 -H "Authorization: Bearer ${{ github.token }}"                 -H "Accept: application/vnd.github+json"                 -d '{"ref":"main"}' >/dev/null || true
+              sleep 90
               break
             fi
 
